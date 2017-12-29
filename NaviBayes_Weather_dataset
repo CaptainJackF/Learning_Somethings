@@ -7,15 +7,15 @@ Play_dataset <- data.frame( weather = c( "Sunny", "Overcast", "Rainy", "Sunny", 
                             Play = c( "No", "Yes", "Yes", "Yes", "Yes", "Yes", "No", "No", "Yes", "Yes", "No", "Yes", "Yes", "No"))
 
 Bayes_test <- function( Weather_today){
-  ## P( h|d) = P(h) * P( d|h) / P(d)
-  ## P( h): 先验概率，即 h 为真的概率
+  ## P( A|B) = P(A) * P( B|A) / P(B)
+  ## P( A): 先验概率，即 A 为真的概率
   p_yes <- nrow( filter( Play_dataset, Play == "Yes" ))/nrow( Play_dataset)
   p_no <- nrow( filter( Play_dataset, Play == "No" ))/nrow( Play_dataset)
   
-  ## P ( d):
+  ## P ( B): 条件概率，B出现的概率
   p_yes_inout <- nrow( filter( Play_dataset, weather == Weather_today ))/nrow( Play_dataset)
   
-  ## P( d|h): 似然，即 h为真时，数据d 出现的概率
+  ## P( B|A): 似然，即 A为真时，数据B 出现的概率
   p_input_yes <- nrow( filter( Play_dataset, Play == "Yes", weather == Weather_today ))/nrow( filter( Play_dataset, Play == "Yes" ))
   p_input_no <- nrow( filter( Play_dataset, Play == "No", weather == Weather_today ))/nrow( filter( Play_dataset, Play == "No" ))
   
