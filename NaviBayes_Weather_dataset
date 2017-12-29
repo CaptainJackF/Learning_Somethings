@@ -1,0 +1,32 @@
+## Bayes
+
+library( dplyr)
+
+Play_dataset <- data.frame( weather = c( "Sunny", "Overcast", "Rainy", "Sunny", "Sunny", "Overcast","Rainy", 
+                                         "Rainy", "Sunny", "Rainy", "Sunny", "Overcast", "Overcast", "Rainy"),
+                            Play = c( "No", "Yes", "Yes", "Yes", "Yes", "Yes", "No", "No", "Yes", "Yes", "No", "Yes", "Yes", "No"))
+
+Bayes_test <- function( Weather_today){
+  ## P( h|d) = P(h) * P( d|h) / P(d)
+  ## P( h): 先验概率，即 h 为真的概率
+  p_yes <- nrow( filter( Play_dataset, Play == "Yes" ))/nrow( Play_dataset)
+  p_no <- nrow( filter( Play_dataset, Play == "No" ))/nrow( Play_dataset)
+  
+  ## P ( d):
+  p_yes_inout <- nrow( filter( Play_dataset, weather == Weather_today ))/nrow( Play_dataset)
+  
+  ## P( d|h): 似然，即 h为真时，数据d 出现的概率
+  p_input_yes <- nrow( filter( Play_dataset, Play == "Yes", weather == Weather_today ))/nrow( filter( Play_dataset, Play == "Yes" ))
+  p_input_no <- nrow( filter( Play_dataset, Play == "No", weather == Weather_today ))/nrow( filter( Play_dataset, Play == "No" ))
+  
+  ## output
+  P_yes_input <- round( p_yes*( p_input_yes / p_yes_inout), 4)
+  P_no_input <- round( p_no*( p_input_no / p_yes_inout), 4)
+  
+  return( paste0( "今天的天气为：", Weather_today,"，可以出行的概率为", P_yes_input*100, "%。",
+                  "不可以出行的概率为", P_no_input*100, "%。  ", 
+                  ifelse( P_yes_input >= P_no_input, "可以出行", "不建议出行") ))
+
+}
+
+Bayes_test( "Sunny")
