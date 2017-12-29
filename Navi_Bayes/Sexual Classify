@@ -1,0 +1,43 @@
+## Sexual Classify
+## 连续型变量 - Gaussian Naive Bayes
+Sexual <- data.frame( Sexual = c( "男", "男", "男", "男", "女", "女", "女", "女"),
+                      Height = c( 6, 5.92, 5.58 ,5.92, 5, 5.5, 5.42, 5.72),
+                      Weight = c( 180, 190, 170, 165, 100, 150, 130, 150),
+                      Feet = c( 12, 11, 12, 10, 6, 8, 7, 9))
+## Feature Engineering - 重点在于将连续型变量转化为离散型
+Sexual_man <- filter( Sexual,
+                      Sexual == "男") %>%
+  mutate( H)
+## 有些特征是离散型的，可以简单粗暴的将其 等箱/等距分层，但这种方法不够细腻。
+## 高斯分布可以解决这个问题。
+Gaussian_Naive_Bayes <- function( feature1, feature2, feature3, P_of_result){
+  ## 找到 P( A|B) = P(A) * P( B|A) / P(B)的最大值，即 P(A) * P( B|A) 的最大值， P( B) 都相等，比较时可以忽略。
+  ## P( A): 先验概率，即 A 为真的概率
+  p_Sexual <- nrow( filter( Sexual, Sexual == P_of_result ))/nrow( Sexual)
+  
+  ## P( F1 F2 F3| male) = P(F1|male)*P(F2|male)*P(F3|male)
+  p_f1_male <- ( 1/sqrt( 2*pi*(sd( Sexual[ Sexual$Sexual == '男', ]$Height)^2))) *
+    ( exp( ( -( feature1 - mean( Sexual[ Sexual$Sexual == '男', ]$Height))^2 ) / ( 2*(sd( Sexual[ Sexual$Sexual == '男', ]$Height)^2))) )
+  p_f2_male <- ( 1/sqrt( 2*pi*(sd( Sexual[ Sexual$Sexual == '男', ]$Weight)^2))) *
+    ( exp( ( -( feature2 - mean( Sexual[ Sexual$Sexual == '男', ]$Weight))^2 ) / ( 2*(sd( Sexual[ Sexual$Sexual == '男', ]$Weight)^2))) )
+  p_f3_male <- ( 1/sqrt( 2*pi*(sd( Sexual[ Sexual$Sexual == '男', ]$Feet)^2))) *
+    ( exp( ( -( feature3 - mean( Sexual[ Sexual$Sexual == '男', ]$Feet))^2 ) / ( 2*(sd( Sexual[ Sexual$Sexual == '男', ]$Feet)^2))) )
+  p_male <- p_f1_male*p_f2_male*p_f3_male*p_Sexual
+  
+  p_f1_female <- ( 1/sqrt( 2*pi*(sd( Sexual[ Sexual$Sexual == '女', ]$Height)^2))) *
+    ( exp( ( -( feature1 - mean( Sexual[ Sexual$Sexual == '女', ]$Height))^2 ) / ( 2*(sd( Sexual[ Sexual$Sexual == '女', ]$Height)^2))) )
+  p_f2_female <- ( 1/sqrt( 2*pi*(sd( Sexual[ Sexual$Sexual == '女', ]$Weight)^2))) *
+    ( exp( ( -( feature2 - mean( Sexual[ Sexual$Sexual == '女', ]$Weight))^2 ) / ( 2*(sd( Sexual[ Sexual$Sexual == '女', ]$Weight)^2))) )
+  p_f3_female <- ( 1/sqrt( 2*pi*(sd( Sexual[ Sexual$Sexual == '女', ]$Feet)^2))) *
+    ( exp( ( -( feature3 - mean( Sexual[ Sexual$Sexual == '女', ]$Feet))^2 ) / ( 2*(sd( Sexual[ Sexual$Sexual == '女', ]$Feet)^2))) )
+  
+  p_female <- p_f1_female*p_f2_female*p_f3_female*( 1- p_Sexual)
+  
+  return( paste0( "特征：身高", feature1,"，体重", feature2, "，脚掌长", feature3, "。",
+                  ifelse( p_male > p_female,
+                          paste0( "男性的概率比女性高：", p_male/p_female, "倍"),
+                          paste0( "女性的概率比男性高：", p_female/p_male, "倍"))
+                  )
+          )
+}
+Gaussian_Naive_Bayes( 5.75, 165, 9.2, "男")
