@@ -1,0 +1,89 @@
+## iris dataset
+library( caret)
+iris_dataset <- iris
+
+## 分层抽样
+iris_index <- createDataPartition( iris_dataset$Species, 
+                                   times = 1, p = 0.7, list = F) # 返回的只是下表标签
+iris_dataset_train <- iris_dataset[ iris_index,]  ## 训练集
+iris_dataset_test <- iris_dataset[ -iris_index,]  ## 测试集
+
+iris_classify <- function( feature1, feature2, feature3, feature4){
+  ## 找到 P( A|B) = P(A) * P( B|A) / P(B)的最大值，即 P(A) * P( B|A) 的最大值， P( B) 都相等，比较时可以忽略。
+  ## P( A): 先验概率，即 A 为真的概率
+  p_setosa <- nrow( filter( iris_dataset_train, Species == "setosa" ))/nrow( iris_dataset_train)
+  p_versicolor <- nrow( filter( iris_dataset_train, Species == "versicolor" ))/nrow( iris_dataset_train)
+  p_virginica <- nrow( filter( iris_dataset_train, Species == "virginica" ))/nrow( iris_dataset_train)
+  
+  ## P( F1 F2 F3| male) = P(F1|male)*P(F2|male)*P(F3|male)
+  p_f1_setosa <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Sepal.Length)^2))) * 
+    ( exp( ( -( feature1 - mean( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Sepal.Length))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Sepal.Length)^2))) )
+  p_f2_setosa <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Sepal.Width)^2))) * 
+    ( exp( ( -( feature2 - mean( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Sepal.Width))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Sepal.Width)^2))) )
+  p_f3_setosa <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Petal.Length)^2))) * 
+    ( exp( ( -( feature3 - mean( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Petal.Length))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Petal.Length)^2))) )
+  p_f4_setosa <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Petal.Width)^2))) * 
+    ( exp( ( -( feature4 - mean( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Petal.Width))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'setosa', ]$Petal.Width)^2))) )
+  p_setosa <- p_f1_setosa*p_f2_setosa*p_f3_setosa*p_f4_setosa*p_setosa
+  
+  
+  p_f1_versicolor <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Sepal.Length)^2))) * 
+    ( exp( ( -( feature1 - mean( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Sepal.Length))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Sepal.Length)^2))) )
+  p_f2_versicolor <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Sepal.Width)^2))) * 
+    ( exp( ( -( feature2 - mean( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Sepal.Width))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Sepal.Width)^2))) )
+  p_f3_versicolor <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Petal.Length)^2))) * 
+    ( exp( ( -( feature3 - mean( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Petal.Length))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Petal.Length)^2))) )
+  p_f4_versicolor <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Petal.Width)^2))) * 
+    ( exp( ( -( feature4 - mean( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Petal.Width))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'versicolor', ]$Petal.Width)^2))) )
+  p_versicolor <- p_f1_versicolor*p_f2_versicolor*p_f3_versicolor*p_f4_versicolor*p_versicolor
+  
+  
+  p_f1_virginica <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Sepal.Length)^2))) * 
+    ( exp( ( -( feature1 - mean( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Sepal.Length))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Sepal.Length)^2))) )
+  p_f2_virginica <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Sepal.Width)^2))) * 
+    ( exp( ( -( feature2 - mean( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Sepal.Width))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Sepal.Width)^2))) )
+  p_f3_virginica <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Petal.Length)^2))) * 
+    ( exp( ( -( feature3 - mean( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Petal.Length))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Petal.Length)^2))) )
+  p_f4_virginica <- ( 1/sqrt( 2*pi*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Petal.Width)^2))) * 
+    ( exp( ( -( feature4 - mean( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Petal.Width))^2 ) / 
+             ( 2*(sd( iris_dataset_train[ iris_dataset_train$Species == 'virginica', ]$Petal.Width)^2))) )
+  p_virginica <- p_f1_virginica*p_f2_virginica*p_f3_virginica*p_f4_virginica*p_virginica
+  
+  
+  p <- max( p_setosa, p_versicolor, p_virginica )
+  
+  if( p_setosa == p){
+    pp <- "setosa"
+  } else if( p_versicolor == p){
+    pp <-"versicolor"
+  } else if( p_virginica == p){
+    pp <- "virginica"
+    }
+
+  return( pp)
+}
+
+
+iris_dataset_test$Species1 <- mapply( iris_classify, 
+                                      iris_dataset_test$Sepal.Length,
+                                      iris_dataset_test$Sepal.Width,
+                                      iris_dataset_test$Petal.Length,
+                                      iris_dataset_test$Petal.Width
+                                      )
+
+prop.table( table( iris_dataset_test$Species == iris_dataset_test$Species1))
+
+
+##     FALSE       TRUE 
+##0.04444444 0.95555556 
