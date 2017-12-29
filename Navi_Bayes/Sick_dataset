@@ -1,0 +1,23 @@
+## 多个特征
+cold_dataset <- data.frame( perforce = c( "打喷嚏", "打喷嚏", "头痛", "头痛", "打喷嚏", "头痛"),
+                            Job = c( "护士", "农夫", "建筑工人", "建筑工人", "教师", "教师"),
+                            Sick = c("感冒", "过敏", "脑震荡人", "感冒", "感冒", "脑震荡"))
+Bayes_test2 <- function( feature1, feature2, P_of_result){
+  ## P( A|B) = P(A) * P( B|A) / P(B)
+  ## P( A): 先验概率，即 A 为真的概率
+  p_Sick <- nrow( filter( cold_dataset, Sick == P_of_result ))/nrow( cold_dataset)
+  
+  ## P ( B): 条件概率，B出现的概率
+  p_Select <- nrow( filter( cold_dataset, perforce == feature1 ))*nrow( filter( cold_dataset, Job == feature2 ))/
+    nrow( cold_dataset)^2
+  
+  ## P( B|A): 似然，即 A为真时，数据B 出现的概率
+  p_input_yes <- nrow( filter( cold_dataset, Sick == P_of_result, perforce == feature1 ))*nrow( filter( cold_dataset, Sick == P_of_result, Job == feature2 ))/
+    nrow( filter( cold_dataset, Sick == P_of_result ))^2
+  ## output
+  P_yes_input <- round( p_Sick*( p_input_yes / p_Select), 4)
+  
+  return( paste0( "患病表现：", feature1,"，职业：", feature2, "患", P_of_result, "的概率为：", P_yes_input*100, "%。"))
+  
+}
+Bayes_test2( "打喷嚏", "建筑工人", "感冒")
