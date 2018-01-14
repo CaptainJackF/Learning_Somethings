@@ -29,16 +29,25 @@ titanic_train <- read.csv( "train.csv", header = TRUE, stringsAsFactors = FALSE)
 
 
 ## ------ Feature Engineering ------
-## Pclass vs Survived
-  ## 仓位高的，存活率高；但最低仓位的存货人数比中等仓位的高。
-ggplot( titanic_train, aes( Pclass, fill = factor( Survived) )) + 
+## Titanic: Pclass vs Sex
+## 仓位高的，存活率高；但最低仓位的存货人数比中等仓位的高。
+p1 <- ggplot( titanic_train, aes( Pclass, fill = factor( Survived) )) + 
   geom_bar( stat = 'count', position = 'dodge') +
+  geom_label( stat='count', aes( label = ..count..)) +
+  scale_color_brewer( palette = "Purples") +
+  facet_grid( Sex ~.) +
+  xlab( "Num") + 
+  ylab( "Pclass") + 
+  ggtitle( "Titanic: Pclass vs Sex") +
   theme_few()
 
 ## Sex vs Survived: 女性存活率高；
-ggplot( titanic_train, aes( Sex, fill = factor( Survived) )) + 
+p2 <- ggplot( titanic_train, aes( Sex, fill = factor( Survived) )) + 
   geom_bar( stat = 'count', position = 'dodge') +
+  geom_label( stat='count', aes( label = ..count..)) +
   theme_few()
+
+plot_grid(p1, p2)  ## 同时输出两个图
 
 ## Age vs Survived: 女性存活率高；
 ggplot( titanic_train, aes( Age, fill = factor( Survived) )) + 
