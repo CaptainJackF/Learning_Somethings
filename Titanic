@@ -7,7 +7,7 @@ library( 'scales') # visualization
 library( 'dplyr') # data manipulation
 library( 'mice') # imputation
 library( 'randomForest') # classification algorithm
-
+library( cowplot)
 
 setwd( "D:\\R_Working_Directory\\Data\\Titanic")
 
@@ -28,33 +28,57 @@ titanic_train <- read.csv( "train.csv", header = TRUE, stringsAsFactors = FALSE)
 # Embarked: 登船港口
 
 
-## ------ Feature Engineering ------
+## ------ visualization ------
+## Overall: There are 891 obs, and 549 people died( 61.6%).
+p0 <- ggplot( titanic_train, aes( x = Survived, fill = factor( Survived))) +
+  geom_bar( stat = "count") +
+  geom_label( stat = "count", aes( label = ..count..)) + 
+  labs( x = 'How many people died and survived on the Titanic?') + 
+  theme_few()
+
+## Sex vs Survived: 
+## 女性存活率高；
+p1.1 <- ggplot( titanic_train, aes( Sex, fill = Sex )) + 
+  geom_bar( stat = 'count', position = 'dodge') +
+  geom_label( stat='count', aes( label = ..count..)) +
+  labs( x = "Sex distribution.") +
+  theme_few()
+
+p1.2 <- ggplot( titanic_train, aes( Sex, fill = factor( Survived) )) + 
+  geom_bar( stat = 'count', position = 'dodge') +
+  geom_label( stat='count', aes( label = ..count..)) +
+  labs( x = "How many male / female died on the Titanic.") +
+  theme_few() +
+  theme( legend.position = "none") 
+plot_grid( p1.1, p1.2)
+
 ## Titanic: Pclass vs Sex
-## 仓位高的，存活率高；但最低仓位的存货人数比中等仓位的高。
-p1 <- ggplot( titanic_train, aes( Pclass, fill = factor( Survived) )) + 
-  geom_bar( stat = 'count', position = 'dodge') +
+## 乘坐3等船舱的乘客最多.
+p2.1 <- ggplot( titanic_train, aes( Pclass, fill = factor( Pclass) )) + 
+  geom_bar( stat = 'count') +
   geom_label( stat='count', aes( label = ..count..)) +
-  scale_color_brewer( palette = "Purples") +
-  facet_grid( Sex ~.) +
-  xlab( "Num") + 
-  ylab( "Pclass") + 
-  ggtitle( "Titanic: Pclass vs Sex") +
-  theme_few()
+  labs( x = "Titanic: Pclass vs Sex") +
+  theme_few() +
+  theme( legend.position = "none") 
+## 仓位高的, 存活率高; 船舱等级的高低与存活率有明显的相关性.
+p2.2 <- ggplot( titanic_train, aes( Pclass, fill = factor( Survived) )) + 
+  geom_bar( stat = 'count',  position = 'dodge') +
+  labs( x = "Train data.") + 
+  theme_few() +
+  theme( legend.position = "none") 
+## 可以看到女性的存活率是相当高的, 且1,2等舱的女性乘客基本上都存活下来了. 二男性则不然,尤其是 2,3等舱的男乘客, 死亡率相近.
+p2.3 <- ggplot( titanic_train, aes( Pclass, fill = factor( Survived) )) + 
+  geom_bar( stat = 'count',  position = 'fill') +
+  labs( x = "Train data.") + 
+  facet_grid( .~ Sex) +
+  theme_few() +
+  theme( legend.position = "none") 
+plot_grid( p2.1, p2.2, p2.3, ncol = 3) ## 同时出图, ncol参数为一行输出多少张图.
 
-## Sex vs Survived: 女性存活率高；
-p2 <- ggplot( titanic_train, aes( Sex, fill = factor( Survived) )) + 
-  geom_bar( stat = 'count', position = 'dodge') +
-  geom_label( stat='count', aes( label = ..count..)) +
-  theme_few()
-
-plot_grid(p1, p2)  ## 同时输出两个图
-
-## Age vs Survived: 女性存活率高；
-ggplot( titanic_train, aes( Age, fill = factor( Survived) )) + 
-  geom_histogram( position = 'dodge') +
-  facet_grid( .~Sex) +
-  theme_few()
-
-## 
-titanic_train <- select( titanic_train,
-                         -PassengerId)
+## ------ Feature engineering ------
+## 姓名虽然看似没有信息可以挖掘, 但是其中包含着 Mr. Mrs. 等头衔(title), 可以反映出这个人的身份,地位等
+titanic_train$title <- sapply( titanic_train$Name, 
+                               function(x){ strsplit( x, split = "[,.]")[[1]][2]})
+## 查看表格.
+table( titanic_train$Sex, titanic_train$title)
+## 对 title进行分类, 根据现实情况划分即可.
