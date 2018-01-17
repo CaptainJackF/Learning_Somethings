@@ -79,6 +79,39 @@ plot_grid( p2.1, p2.2, p2.3, ncol = 3) ## 同时出图, ncol参数为一行输�
 ## 姓名虽然看似没有信息可以挖掘, 但是其中包含着 Mr. Mrs. 等头衔(title), 可以反映出这个人的身份,地位等
 titanic_train$title <- sapply( titanic_train$Name, 
                                function(x){ strsplit( x, split = "[,.]")[[1]][2]})
+titanic_train$title <- sub( ' ', '', titanic_train$title )
 ## 查看表格.
 table( titanic_train$Sex, titanic_train$title)
 ## 对 title进行分类, 根据现实情况划分即可.
+## 注意, 像 'Capt', 'Don', 'the Counttree' 这类数量极少的, 不应该统计在内.
+
+titanic_train$title1 <- titanic_train$title ## 先copy元title, 因为有部分 title不需要做变换
+titanic_train$title1[ titanic_train$title %in% c( "Mlle", "Mr")] <- "Miss" ##'Mr' 常用来称呼年轻的已婚女性, 可以与Miss分为一组.
+titanic_train$title1[ titanic_train$title == "Mme"] <- "Mrs" 
+titanic_train$title1[ !(titanic_train$title %in% c('Master', 'Miss', 'Mr', 'Mrs'))] <- "Rare Title" 
+##  Mr(先生)这种占比极大的 title, 又是男性, 在不同的船舱等级中死亡率差异较大, 因此将其再划分为两部分:
+titanic_train$title1[ titanic_train$title == "Mr" & titanic_train$Pclass == '1'] <- "MrP1" 
+titanic_train$title1[ titanic_train$title == "Mr" & titanic_train$Pclass %in% c( '2', '3')] <- "MrP23" 
+
+table( titanic_train$Sex, titanic_train$title1)
+
+p3 <- ggplot( titanic_train, aes( x = title1, fill = factor( Survived))) +
+  geom_bar( stat = 'count', position = 'stack') +
+  labs( x = "Title")
+  
+
+## Famliy Size: 从"SibSp", "Parch"可以看出与乘客同船的 兄弟姐妹数 和 子女父母数. 
+## 因此 family Size = 兄弟姐妹数 + 子女父母数 + 本人
+titanic_train$Fsize <- titanic_train$SibSp + titanic_train$Parch + 1
+p4.1 <- ggplot( titanic_train, aes( x = Fsize, fill = factor( Survived))) +
+  geom_bar( stat = 'count', position = 'dodge') +
+  scale_x_continuous( breaks = c( 1:11)) +
+  labs( x = "Famliy Size") +
+  theme( legend.position = "none") 
+p4.2 <- ggplot( titanic_train, aes( x = Fsize, fill = factor( Survived))) +
+  geom_bar( stat = 'count', position = 'fill') +
+  scale_x_continuous( breaks = c( 1:11)) +
+  labs( x = "Famliy Size")
+## 可以看到, 1人乘船的数量最大,且死亡率非常高. 2-4人同乘, 有很大几率存活.
+plot_grid( p4.1, p4.2, ncol = 2)
+
