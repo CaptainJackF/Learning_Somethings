@@ -13,8 +13,14 @@ setwd( "D:\\R_Working_Directory\\Data\\Titanic")
 
 ## read the titanic dataset
 titanic_train <- read.csv( "train.csv", header = TRUE, stringsAsFactors = FALSE)
-#titanic_test <- read.csv( "test.csv", header = TRUE, stringsAsFactors = FALSE)
+titanic_test <- read.csv( "test.csv", header = TRUE, stringsAsFactors = FALSE)
+full <- bind_rows( titanic_train, titanic_test)
 #titanic_test_result <- read.csv( "gender_submission.csv", header = TRUE, stringsAsFactors = FALSE)
+
+## 将一些重要的字段转化为因子型
+full$Survived <- factor( full$Survived)
+full$Sex <- factor( full$Sex)
+full$Pclass <- factor( full$Pclass)
 
 # Pclass: 舱位等级, 分1/2/3;
 # Name: 乘客姓名
@@ -27,91 +33,139 @@ titanic_train <- read.csv( "train.csv", header = TRUE, stringsAsFactors = FALSE)
 # Cabin: 客舱号, 大量空缺值, 非 NA
 # Embarked: 登船港口
 
+full_train <- full[ !is.na( full$Survived),] ## 方便画图
 
 ## ------ visualization ------
 ## Overall: There are 891 obs, and 549 people died( 61.6%).
-p0 <- ggplot( titanic_train, aes( x = Survived, fill = factor( Survived))) +
+p0 <- ggplot( full_train, aes( x = Survived, fill = Survived)) +
   geom_bar( stat = "count") +
   geom_label( stat = "count", aes( label = ..count..)) + 
-  labs( x = 'How many people died and survived on the Titanic?') + 
-  theme_few()
+  labs( x = 'How many people died and survived on the Titanic?')
 
-## Sex vs Survived: 
-## 女性存活率高；
-p1.1 <- ggplot( titanic_train, aes( Sex, fill = Sex )) + 
+## 1. Sex vs Survived: 
+## 女性存活率高, 性别是影响预测结果的重要因素之一.
+p1.1 <- ggplot( full_train, aes( Sex, fill = Sex )) + 
   geom_bar( stat = 'count', position = 'dodge') +
   geom_label( stat='count', aes( label = ..count..)) +
-  labs( x = "Sex distribution.") +
-  theme_few()
+  labs( x = "Sex distribution.") 
 
-p1.2 <- ggplot( titanic_train, aes( Sex, fill = factor( Survived) )) + 
+p1.2 <- ggplot( full_train, aes( Sex, fill = Survived )) + 
   geom_bar( stat = 'count', position = 'dodge') +
   geom_label( stat='count', aes( label = ..count..)) +
-  labs( x = "How many male / female died on the Titanic.") +
-  theme_few() +
-  theme( legend.position = "none") 
+  labs( x = "How many male / female died on the Titanic.")
 plot_grid( p1.1, p1.2)
 
-## Titanic: Pclass vs Sex
+## 2. Titanic: Passager class
 ## 乘坐3等船舱的乘客最多.
-p2.1 <- ggplot( titanic_train, aes( Pclass, fill = factor( Pclass) )) + 
+p2.1 <- ggplot( full, aes( Pclass, fill = Pclass)) + 
   geom_bar( stat = 'count') +
   geom_label( stat='count', aes( label = ..count..)) +
-  labs( x = "Titanic: Pclass vs Sex") +
-  theme_few() +
+  labs( x = 'All data.') +
   theme( legend.position = "none") 
 ## 仓位高的, 存活率高; 船舱等级的高低与存活率有明显的相关性.
-p2.2 <- ggplot( titanic_train, aes( Pclass, fill = factor( Survived) )) + 
+p2.2 <- ggplot( full_train, aes( Pclass, fill = Survived)) + 
   geom_bar( stat = 'count',  position = 'dodge') +
-  labs( x = "Train data.") + 
-  theme_few() +
   theme( legend.position = "none") 
 ## 可以看到女性的存活率是相当高的, 且1,2等舱的女性乘客基本上都存活下来了. 二男性则不然,尤其是 2,3等舱的男乘客, 死亡率相近.
-p2.3 <- ggplot( titanic_train, aes( Pclass, fill = factor( Survived) )) + 
-  geom_bar( stat = 'count',  position = 'fill') +
-  labs( x = "Train data.") + 
+p2.3 <- ggplot( full_train, aes( Pclass, fill = Survived)) + 
+  geom_bar( stat = 'count',  position = 'dodge') +
   facet_grid( .~ Sex) +
-  theme_few() +
-  theme( legend.position = "none") 
-plot_grid( p2.1, p2.2, p2.3, ncol = 3) ## 同时出图, ncol参数为一行输出多少张图.
+  theme( legend.position = "none")
+p2.4 <- ggplot( full_train, aes( Pclass, fill = Survived)) + 
+  geom_bar( stat = 'count',  position = 'fill') +
+  facet_grid( .~ Sex) +
+  labs( y = "percent") +
+  theme( legend.position = "none")
+plot_grid( p2.1, p2.2, p2.3, p2.4, ncol = 2) ## 同时出图, ncol参数为一行输出多少张图.
 
 ## ------ Feature engineering ------
-## 姓名虽然看似没有信息可以挖掘, 但是其中包含着 Mr. Mrs. 等头衔(title), 可以反映出这个人的身份,地位等
-titanic_train$title <- sapply( titanic_train$Name, 
-                               function(x){ strsplit( x, split = "[,.]")[[1]][2]})
-titanic_train$title <- sub( ' ', '', titanic_train$title )
+## 3. 姓名虽然看似没有信息可以挖掘, 但是其中包含着 Mr. Mrs. 等头衔(title), 可以反映出这个人的身份,地位等
+full$title <- sapply( full$Name, 
+                      function(x){ strsplit( x, split = "[,.]")[[1]][2]})
+full$title <- sub( ' ', '', full$title )
 ## 查看表格.
-table( titanic_train$Sex, titanic_train$title)
+table( full$Sex, full$title)
 ## 对 title进行分类, 根据现实情况划分即可.
 ## 注意, 像 'Capt', 'Don', 'the Counttree' 这类数量极少的, 不应该统计在内.
 
-titanic_train$title1 <- titanic_train$title ## 先copy元title, 因为有部分 title不需要做变换
-titanic_train$title1[ titanic_train$title %in% c( "Mlle", "Mr")] <- "Miss" ##'Mr' 常用来称呼年轻的已婚女性, 可以与Miss分为一组.
-titanic_train$title1[ titanic_train$title == "Mme"] <- "Mrs" 
-titanic_train$title1[ !(titanic_train$title %in% c('Master', 'Miss', 'Mr', 'Mrs'))] <- "Rare Title" 
+full$title1 <- full$title ## 先copy元title, 因为有部分 title不需要做变换
+full$title1[ full$title %in% c( "Mlle", "Mr")] <- "Miss" ##'Mr' 常用来称呼年轻的已婚女性, 可以与Miss分为一组.
+full$title1[ full$title == "Mme"] <- "Mrs" 
+full$title1[ !( full$title %in% c('Master', 'Miss', 'Mr', 'Mrs'))] <- "Rare Title" 
 ##  Mr(先生)这种占比极大的 title, 又是男性, 在不同的船舱等级中死亡率差异较大, 因此将其再划分为两部分:
-titanic_train$title1[ titanic_train$title == "Mr" & titanic_train$Pclass == '1'] <- "MrP1" 
-titanic_train$title1[ titanic_train$title == "Mr" & titanic_train$Pclass %in% c( '2', '3')] <- "MrP23" 
+full$title1[ full$title == "Mr" & full$Pclass == '1'] <- "MrP1" 
+full$title1[ full$title == "Mr" & full$Pclass %in% c( '2', '3')] <- "MrP23" 
 
-table( titanic_train$Sex, titanic_train$title1)
+table( full$Sex, full$title1)
 
-p3 <- ggplot( titanic_train, aes( x = title1, fill = factor( Survived))) +
+p3 <- ggplot( full, aes( x = title1, fill = factor( Survived))) +
   geom_bar( stat = 'count', position = 'stack') +
   labs( x = "Title")
-  
 
-## Famliy Size: 从"SibSp", "Parch"可以看出与乘客同船的 兄弟姐妹数 和 子女父母数. 
-## 因此 family Size = 兄弟姐妹数 + 子女父母数 + 本人
-titanic_train$Fsize <- titanic_train$SibSp + titanic_train$Parch + 1
-p4.1 <- ggplot( titanic_train, aes( x = Fsize, fill = factor( Survived))) +
+## Surename
+full$Surname <- sapply( full$Name,  
+                        function(x) strsplit(x, split = '[,.]')[[1]][1])
+
+## 4 Famliy Size: 从"SibSp", "Parch"可以看出与乘客同船的 兄弟姐妹数 和 子女父母数. 
+## 4.1 因此 family Size = 兄弟姐妹数 + 子女父母数 + 本人
+full$Fsize <- full$SibSp + full$Parch + 1
+p4.1 <- ggplot( full, aes( x = Fsize, fill = factor( Survived))) +
   geom_bar( stat = 'count', position = 'dodge') +
   scale_x_continuous( breaks = c( 1:11)) +
   labs( x = "Famliy Size") +
   theme( legend.position = "none") 
-p4.2 <- ggplot( titanic_train, aes( x = Fsize, fill = factor( Survived))) +
+p4.2 <- ggplot( full, aes( x = Fsize, fill = Survived)) +
   geom_bar( stat = 'count', position = 'fill') +
   scale_x_continuous( breaks = c( 1:11)) +
-  labs( x = "Famliy Size")
+  labs( x = "Famliy Size", y = "percent") +
+  theme( legend.position = "none") 
 ## 可以看到, 1人乘船的数量最大,且死亡率非常高. 2-4人同乘, 有很大几率存活.
-plot_grid( p4.1, p4.2, ncol = 2)
+plot_grid( p4.1, p4.2, ncol = 1)
 
+
+
+
+
+
+## 5 
+
+## ------ Missingness ------
+## 5.1 Passenger 62 and 830 are miss 'Embarked'.
+full[ full$Embarked == "", ]
+# 剔除掉上述乘客.
+embark_fare <- filter( full, 
+                       PassengerId != 62, PassengerId != 830)
+# Seeing embarked, Pclass and fare. 并画出上述乘客票价的辅助线.
+p5 <- ggplot( embark_fare, aes(x = Embarked, y = Fare, fill = Pclass)) +
+  geom_boxplot() +
+  geom_hline( aes( yintercept = 80), ## 上述两位乘客的票价都是 80.
+             colour = 'red', linetype = 'dashed', lwd = 1.5) +
+  scale_y_continuous( labels = dollar_format()) 
+# 80正好落在 Pclass = 1 and Embarked = 3 的均线上. 因此将缺失值设为 'C'.
+full$Embarked[ full$Embarked == ""] <- 'C'
+
+## 5.2 Passanger 1044 is miss 'Fare'. 3 Pclass and Embarked is 'S'.
+full[ is.na( full$Fare), ]
+## 查看子集的价格分布
+p5.2 <- ggplot( filter( full, Pclass == 3, Embarked == 'S'),
+                aes( x = Fare)) +
+  geom_density( fill = 'steelblue', alpha = 0.3) + 
+  geom_vline( aes( xintercept = median( Fare, na.rm = T)),
+              colour = 'red', linetype = 'dashed', lwd = 1) +
+  scale_x_continuous( labels = dollar_format()) 
+## 因此将缺失值设为子集价格的中位数.
+full$Fare[1044] <-  median( filter( full, Pclass == 3, Embarked == 'S')$Fare, na.rm = T)
+
+## There are 263 passanger miss their age info.
+sum( is.na( full$Age))
+
+
+# Build the model (note: not all possible variables are used)
+rf_model <- randomForest( Survived ~ Pclass + Sex + Age + SibSp + Parch + 
+                           Fare + Embarked + title1 + 
+                           Fsize,
+                         data = titanic_train)
+
+# Show model error
+plot(rf_model, ylim=c(0,0.36))
+legend('topright', colnames(rf_model$err.rate), col=1:3, fill=1:3)
