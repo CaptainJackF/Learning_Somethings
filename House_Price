@@ -1,0 +1,50 @@
+## House Price
+
+# Load packages
+library( 'ggplot2') # visualization
+library( 'ggthemes') # visualization
+library( 'scales') # visualization
+library( 'dplyr') # data manipulation
+library( 'mice') # imputation
+library( 'randomForest') # classification algorithm
+library( 'cowplot')
+library( 'mice')
+library( 'VIM') 
+library( 'corrplot')
+
+setwd( "D:\\R_Working_Directory\\Data\\House Price")
+
+## read the titanic dataset
+House_Price_train <- read.csv( "train.csv", header = TRUE, stringsAsFactors = TRUE)
+House_Price_test <- read.csv( "test.csv", header = TRUE, stringsAsFactors = TRUE)
+full <- bind_rows( House_Price_train, House_Price_test)
+
+col_name_num <- c( "MSSubClass", "LotFrontage", "LotArea", "OverallQual", "OverallCond", "YearBuilt", 
+                   "YearRemodAdd", "MasVnrArea", "BsmtFinSF1", "BsmtFinSF2", "BsmtUnfSF", "TotalBsmtSF",
+                   "X1stFlrSF", "X2ndFlrSF", "LowQualFinSF", "GrLivArea", "BsmtFullBath", "BsmtHalfBath", 
+                   "FullBath", "HalfBath", "BedroomAbvGr", "KitchenAbvGr", "TotRmsAbvGrd", "Fireplaces",
+                   "GarageYrBlt", "GarageCars", "GarageArea", "WoodDeckSF", "OpenPorchSF", "EnclosedPorch", 
+                   "X3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal", "MoSold", "YrSold", "SalePrice")
+
+## 查看缺失值
+md.pattern( full)
+aggr( full, prop = FALSE, numbers = TRUE) ## 缺失值可视化.
+
+## SalePrice distribution
+ggplot( filter( full, !is.na( SalePrice)),
+        aes( x = SalePrice)) +
+  geom_density( fill = 'steelblue', alpha = 0.3) + 
+  scale_x_continuous( labels = scales::dollar) +
+  scale_y_continuous( labels = scales::percent)
+
+## 
+corr1 <- cor( select( House_Price_train, col_name_num))
+# corr1 <- cor( x = select( House_Price_train, col_name_num, -SalePrice), y = House_Price_train$SalePrice) # 单变量相关系数
+corrplot( corr1, method = "color", number.font = 1) 
+## OverallQual, YearBuilt, YearRemodAdd, MasVnrArea, BsmtUnfSF, TotalBsmtSF, 
+# X1stFlrSF, X2ndFlrSF, GrLivArea, BsmtHalfBath, TotRmsAbvGrd, Fireplaces, GarageCarsm, GarageArea, WoodDeckSF, OpenPorchSF 与 SalePrice 相关性较高.
+
+## 看到 LotFrontage, MasVnrArea, GarageYrBlt 三个变量是存在缺失值的.( 图中显示问号, 计算不出相关系数)
+md.pattern( select( full,  LotFrontage, MasVnrArea, GarageYrBlt))
+
+
