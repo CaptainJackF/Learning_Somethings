@@ -1,0 +1,254 @@
+## Titanic
+
+# Load packages
+library( 'ggplot2') # visualization
+library( 'ggthemes') # visualization
+library( 'scales') # visualization
+library( 'dplyr') # data manipulation
+library( 'mice') # imputation
+library( 'randomForest') # classification algorithm
+library( 'cowplot')
+library( 'mice')
+
+setwd( "D:\\R_Working_Directory\\Data\\Titanic")
+
+## read the titanic dataset
+titanic_train <- read.csv( "train.csv", header = TRUE, stringsAsFactors = FALSE)
+titanic_test <- read.csv( "test.csv", header = TRUE, stringsAsFactors = FALSE)
+full <- bind_rows( titanic_train, titanic_test)
+
+
+## 将一些重要的字段转化为因子型
+full$Survived <- factor( full$Survived)
+full$Sex <- factor( full$Sex)
+full$Pclass <- factor( full$Pclass)
+
+# Pclass: 舱位等级, 分1/2/3;
+# Name: 乘客姓名
+# Sex: 性别
+# Age: 年龄，有缺失值
+# SibSp: 同乘的兄弟姐妹/配偶数
+# Parch: 同乘的父母/小孩数
+# Ticket: 船票编号
+# Fare: 票价
+# Cabin: 客舱号, 大量空缺值, 非 NA
+# Embarked: 登船港口
+
+
+## ------ visualization ------
+
+
+## ------ Feature engineering ------
+## 3. 姓名虽然看似没有信息可以挖掘, 但是其中包含着 Mr. Mrs. 等头衔(Title), 可以反映出这个人的身份,地位等
+full$Title <- sapply( full$Name, 
+                      function(x){ strsplit( x, split = "[,.]")[[1]][2]})
+full$Title <- sub( ' ', '', full$Title )
+## 查看表格.
+table( full$Sex, full$Title)
+## 对 Title, 根据现实情况划分即可.
+## 注意, 像 'Capt', 'Don', 'the Counttree' 这类数量极少的, 不应该统计在内.
+
+full$Title <- full$Title ## 先copy元title, 因为有部分 title不需要做变换
+full$Title[ full$Title %in% c( "Mlle", "Mr")] <- "Miss" ##'Mr' 常用来称呼年轻的已婚女性, 可以与Miss分为一组.
+full$Title[ full$Title == "Mme"] <- "Mrs" 
+full$Title[ !( full$Title %in% c('Master', 'Miss', 'Mr', 'Mrs'))] <- "Rare Title" 
+##  Mr(先生)这种占比极大的 title, 又是男性, 在不同的船舱等级中死亡率差异较大, 因此将其再划分为两部分:
+full$Title[ full$Title == "Mr" & full$Pclass == '1'] <- "MrP1" 
+full$Title[ full$Title == "Mr" & full$Pclass %in% c( '2', '3')] <- "MrP23" 
+
+table( full$Sex, full$Title)
+
+## Surename, 姓氏.
+full$Surname <- sapply( full$Name,  
+                        function(x) strsplit(x, split = '[,.]')[[1]][1])
+
+## 4 Famliy Size: 从"SibSp", "Parch"可以看出与乘客同船的 兄弟姐妹数 和 子女父母数. 
+## 4.1 因此 family Size = 兄弟姐妹数 + 子女父母数 + 本人
+full$Fsize <- full$SibSp + full$Parch + 1
+
+full$FsizeD[ full$Fsize <= 1 ] <- "Solo Traveler"
+full$FsizeD[ full$Fsize > 1 & full$Fsize < 5 ] <- "Small Term"
+full$FsizeD[ full$Fsize >= 5 ] <- "Large Term"
+## 
+
+
+## 5 Cabin, missing lots of data. Try to get something.
+table( full$Cabin)
+## We will see diffent data like "B51 B53 B55", 不好分析. 因此忽略该变量.
+
+
+## ------ Missingness ------
+## 5.1 Passenger 62 and 830 are miss 'Embarked'.
+full[ full$Embarked == "", ]
+# 剔除掉上述乘客.
+embark_fare <- filter( full, 
+                       PassengerId != 62, PassengerId != 830)
+# Seeing embarked, Pclass and fare. 并画出上述乘客票价的辅助线.
+p5 <- ggplot( embark_fare, aes(x = Embarked, y = Fare, fill = Pclass)) +
+  geom_boxplot() +
+  geom_hline( aes( yintercept = 80), ## 上述两位乘客的票价都是 80.
+             colour = 'red', linetype = 'dashed', lwd = 1.5) +
+  scale_y_continuous( labels = dollar_format()) 
+# 80正好落在 Pclass = 1 and Embarked = 3 的均线上. 因此将缺失值设为 'C'.
+full$Embarked[ full$Embarked == ""] <- 'C'
+
+## 5.2 Passanger 1044 is miss 'Fare'. 3 Pclass and Embarked is 'S'.
+full[ is.na( full$Fare), ]
+## 查看子集的价格分布
+p5.2 <- ggplot( filter( full, Pclass == 3, Embarked == 'S'),
+                aes( x = Fare)) +
+  geom_density( fill = 'steelblue', alpha = 0.3) + 
+  geom_vline( aes( xintercept = median( Fare, na.rm = T)),
+              colour = 'red', linetype = 'dashed', lwd = 1) +
+  scale_x_continuous( labels = dollar_format()) 
+## 因此将缺失值设为子集价格的中位数.
+full$Fare[1044] <- median( filter( full, Pclass == 3, Embarked == 'S')$Fare, na.rm = T)
+
+
+## 6 Age. There are 263 passanger miss their age info.
+sum( is.na( full$Age))
+
+# 缺失值插补, 剔除掉有缺失值或对 Age无影响的变量
+full_1 <- select( full, 
+                  Age, Pclass, Sex, SibSp, Parch, Fare, Embarked, Title, Fsize, FsizeD)
+set.seed( 891) 
+tempData <- mice( full_1, m = 5, meth = 'rf')
+mice_output <- complete( tempData) ## 查看完整数据
+
+## 查看插补后年龄分布情况.
+par( mfrow = c( 1,2))
+hist( full$Age, freq = F, main = 'Age: Original Data', 
+      col = 'darkgreen', ylim = c( 0,0.04))
+hist( mice_output$Age, freq = F, main = 'Age: MICE Output', 
+      col = 'lightgreen', ylim = c( 0,0.04))
+## 替换原变量
+full$Age <- mice_output$Age
+sum( is.na( full$Age))
+
+
+## ------ Feature engineering: Round2 ------
+## 7 Age: Round2
+# 年龄小的都容易存货下来, 女性存活率普遍比男性高.
+p7.2 <- ggplot( full[ !is.na( full$Survived),],
+                aes( x = Age, fill = Survived)) +
+  geom_histogram( )  +
+  facet_grid( .~Sex)
+## 因此将年龄划分为两部分: 孩子&成人
+full$Child[ full$Age < 18 ] <- "Child"
+full$Child[ full$Age >= 18 ] <- "Adult"
+table( full$Child, full$Survived)
+
+## 8 Is Mother have more chance to Survived?
+full$Mother <- "Not Mother"
+full$Mother[ full$Age >= 18 & full$Parch > 0 & full$Sex == 'female' & full$Title != 'Miss' ] <- "Mother"
+table( full$Mother, full$Survived)
+
+full$Child <- factor( full$Child)
+full$Mother <- factor( full$Mother)
+full$Embarked <- factor( full$Embarked)
+full$Title <- factor( full$Title)
+full$FsizeD <- factor( full$FsizeD)
+
+## 查看还有多少缺失值
+md.pattern( full)
+
+
+## Prediction
+train <- full[ !is.na( full$Survived), ]
+test <- full[ is.na( full$Survived), ]
+
+# Build the model (note: not all possible variables are used)
+rf_model <- randomForest( Survived ~ Pclass + Sex + Age + SibSp + Parch + 
+                            Fare + Embarked + Title  +
+                            FsizeD + Child + Mother,
+                          data = train)
+
+# Show model error, 黑线显示所有误差 < 20%
+p <- plot( rf_model, ylim = c( 0,0.36))
+legend('topright', colnames(rf_model$err.rate), col=1:3, fill=1:3)
+
+## importance
+# Get importance
+importance    <- importance(rf_model)
+varImportance <- data.frame(Variables = row.names(importance), 
+                            Importance = round(importance[ ,'MeanDecreaseGini'],2))
+
+# Create a rank variable based on importance
+rankImportance <- varImportance %>%
+  mutate(Rank = paste0('#',dense_rank(desc(Importance))))
+
+# Use ggplot2 to visualize the relative importance of variables
+ggplot(rankImportance, aes(x = reorder(Variables, Importance), 
+                           y = Importance, fill = Importance)) +
+  geom_bar(stat='identity') + 
+  geom_text(aes(x = Variables, y = 0.5, label = Rank),
+            hjust=0, vjust=0.55, size = 4, colour = 'red') +
+  labs(x = 'Variables') +
+  coord_flip() + 
+  theme_few()
+
+
+## Prediction
+Prediction <- predict( rf_model, test)
+
+titanic_test_result <- read.csv( "gender_submission.csv", header = TRUE, stringsAsFactors = FALSE)
+titanic_test_result$Prediction <- Prediction
+titanic_test_result$Correct <- titanic_test_result$Prediction ==  titanic_test_result$Survived
+
+prop.table( table( titanic_test_result$Correct))
+
+
+## Navi Bayes
+
+Navi_Bayes_classies <- function( feature1, feature2, feature3, feature4){
+  ## 找到 P( A|B) = P(A) * P( B|A) / P(B)的最大值，即 P(A) * P( B|A) 的最大值， P( B) 都相等，比较时可以忽略。
+  ## P( A): 先验概率，即 A 为真的概率
+  p_Survived <- nrow( filter( train, Survived == 1 ))/nrow( train)
+  p_Dead <- nrow( filter( train, Survived == 0 ))/nrow( train)
+
+  ## P( F1 F2 F3| male) = P(F1|male)*P(F2|male)*P(F3|male)
+  p_f1_S <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 1, ]$Sepal.Length)^2))) * 
+    ( exp( ( -( feature1 - mean( train[ train$Survived == 1, ]$Sepal.Length))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 1, ]$Sepal.Length)^2))) )
+  
+  p_f1_S <- nrow( filter( train, Pclass == feature1, Survived == 1 ))/nrow( filter( train, Survived == 1 ))
+  
+  p_f2_setosa <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 1, ]$Sepal.Width)^2))) * 
+    ( exp( ( -( feature2 - mean( train[ train$Survived == 1, ]$Sepal.Width))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 1, ]$Sepal.Width)^2))) )
+  p_f3_setosa <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 1, ]$Petal.Length)^2))) * 
+    ( exp( ( -( feature3 - mean( train[ train$Survived == 1, ]$Petal.Length))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 1, ]$Petal.Length)^2))) )
+  p_f4_setosa <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 1, ]$Petal.Width)^2))) * 
+    ( exp( ( -( feature4 - mean( train[ train$Survived == 1, ]$Petal.Width))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 1, ]$Petal.Width)^2))) )
+  p_setosa <- p_f1_setosa*p_f2_setosa*p_f3_setosa*p_f4_setosa*p_setosa
+  
+  
+  p_f1_versicolor <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 'versicolor', ]$Sepal.Length)^2))) * 
+    ( exp( ( -( feature1 - mean( train[ train$Survived == 'versicolor', ]$Sepal.Length))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 'versicolor', ]$Sepal.Length)^2))) )
+  p_f2_versicolor <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 'versicolor', ]$Sepal.Width)^2))) * 
+    ( exp( ( -( feature2 - mean( train[ train$Survived == 'versicolor', ]$Sepal.Width))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 'versicolor', ]$Sepal.Width)^2))) )
+  p_f3_versicolor <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 'versicolor', ]$Petal.Length)^2))) * 
+    ( exp( ( -( feature3 - mean( train[ train$Survived == 'versicolor', ]$Petal.Length))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 'versicolor', ]$Petal.Length)^2))) )
+  p_f4_versicolor <- ( 1/sqrt( 2*pi*(sd( train[ train$Survived == 'versicolor', ]$Petal.Width)^2))) * 
+    ( exp( ( -( feature4 - mean( train[ train$Survived == 'versicolor', ]$Petal.Width))^2 ) / 
+             ( 2*(sd( train[ train$Survived == 'versicolor', ]$Petal.Width)^2))) )
+  p_versicolor <- p_f1_versicolor*p_f2_versicolor*p_f3_versicolor*p_f4_versicolor*p_versicolor
+
+  
+  p <- max( p_setosa, p_versicolor, p_virginica )
+  
+  if( p_setosa == p){
+    pp <- "setosa"
+  } else if( p_versicolor == p){
+    pp <-"versicolor"
+  } else if( p_virginica == p){
+    pp <- "virginica"
+  }
+  
+  return( pp)
+}
