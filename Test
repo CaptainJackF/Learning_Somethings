@@ -1,0 +1,20 @@
+## Bayes
+
+library( dplyr)
+
+cold_dataset <- data.frame( perforce = c( "打喷嚏", "打喷嚏", "头痛", "头痛", "打喷嚏", "头痛"),
+                            Job = c( "护士", "农夫", "建筑工人", "建筑工人", "教师", "教师"),
+                            Sick = c("感冒", "过敏", "脑震荡", "感冒", "感冒", "脑震荡"))
+
+
+nb <- naiveBayes( cold_dataset[ ,c("perforce", "Job")], 
+                  cold_dataset$Sick)
+
+test <- data.frame( perforce = c( "打喷嚏", "打喷嚏", "头痛", "头痛", "打喷嚏", "头痛"),
+                    Job = c( "护士", "农夫", "建筑工人", "建筑工人", "教师", "教师"))
+
+predict( nb, test)
+
+nb_iris <- naiveBayes( Species ~ Sepal.Length+Sepal.Width+Petal.Length+Petal.Width, 
+                       iris)
+
