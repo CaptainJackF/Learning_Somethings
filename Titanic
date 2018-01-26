@@ -252,3 +252,16 @@ titanic_test_result$Prediction <- Prediction
 titanic_test_result$Correct <- titanic_test_result$Prediction ==  titanic_test_result$Survived
 
 prop.table( table( titanic_test_result$Correct))
+
+
+## Prediction - Navi Bayes
+library( e1071)
+
+nb <- naiveBayes( train[ ,c("Pclass", "Sex", "Age", "SibSp", "Parch", "Fare", "Embarked", "Title", "FsizeD" ,"Child" ,"Mother")], 
+                  train$Survived)
+
+titanic_test_result <- read.csv( "gender_submission.csv", header = TRUE, stringsAsFactors = FALSE)
+titanic_test_result$Prediction <- predict( nb, test)
+titanic_test_result$Correct <- titanic_test_result$Prediction ==  titanic_test_result$Survived
+
+prop.table( table( titanic_test_result$Correct))
