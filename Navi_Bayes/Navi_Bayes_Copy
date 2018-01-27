@@ -63,7 +63,7 @@ predict_copy <- function( test_data, object, laplace = 1){
     sep_temp <- unlist( sapply( X = segmentCN( test_data), FUN = removewords, StopWords))
     
     ## 计算条件概率
-    p <- prod( unlist( lapply( sep_temp, p_calculate) ) )
+    p <- result[ i] * prod( unlist( lapply( sep_temp, p_calculate) ) )
     
     temp <- data.frame( Class = i, P = p, stringsAsFactors = F)
     re <- bind_rows( re, temp)
