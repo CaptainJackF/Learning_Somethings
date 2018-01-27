@@ -1,0 +1,85 @@
+## Bayes
+
+library( dplyr)
+library( Rwordseg)
+
+Train <- data.frame( 
+  Text = c( "我爱北京天安门", "支付被真给力", "微信支付真棒", "十九大在北京召开", "外交部在北京召开新闻发布会", "支付宝移动支付"),
+  Class = c("政治", "娱乐", "娱乐", "政治", "政治", "娱乐"),
+  stringsAsFactors = F)
+
+## 加载停用词包
+StopWords <-  unlist( 
+  read.table(
+    "D:\\R_Working_Directory\\Data\\Text\\Stopwords.txt", 
+    stringsAsFactors = FALSE
+  )
+) 
+
+removewords <- function( target_words, stop_words){
+  target_words = target_words[ target_words%in%stop_words == FALSE]
+  return( target_words)
+}
+
+naci_bayes_copy <- function( x, y, data){
+
+  apriori <- prop.table( table( select( data, y)))
+  tables <- data.frame()
+  
+  for ( i in names( apriori)){
+    temp <- data[ data[ , y] == i,]
+    
+    sep_temp <- sapply( X = segmentCN( temp[ ,x]), FUN = removewords, StopWords)
+    temp <- as.data.frame( table( unlist( sep_temp)), stringsAsFactors = F)
+    temp$Class <- i
+    
+    tables <- bind_rows( tables, temp)
+  }
+  
+  return( list( apriori, tables))
+}
+
+naci_bayes_copy( "Text", "Class", Train)
+
+
+predict_copy <- function( test_data, object, laplace = 1){
+  result <- object[[1]]
+  
+  object_data <- object[[2]]
+  
+  p_calculate <- function( x){
+    if( x %in% object_data$Var1[ object_data$Class == i]){
+      return( ( object_data$Freq[ object_data$Class == i & object_data$Var1 == x] +1 ) / 
+                ( sum( object_data$Freq[ object_data$Class == i]) + length( Yname) ) )
+  
+      } else{
+        return( laplace/( sum( object_data$Freq[ object_data$Class == i]) + length( Yname) ) )
+      }
+  }
+  
+  re <- data.frame( )
+  
+  for( i in names( result)){
+    sep_temp <- unlist( sapply( X = segmentCN( test_data), FUN = removewords, StopWords))
+    
+    ## 计算条件概率
+    p <- prod( unlist( lapply( sep_temp, p_calculate) ) )
+    
+    temp <- data.frame( Class = i, P = p, stringsAsFactors = F)
+    re <- bind_rows( re, temp)
+  }
+    
+  
+  return( re$Class[ re$P == max( re$P)])
+    
+}
+
+Test <- data.frame( 
+  test_text = c( "外交部派出飞机救援",
+                 "凌潇肃翟天临兄弟之争",
+                 "iPhone一代十年后再开箱"),
+  stringsAsFactors = F)
+
+predict_copy( "外交部派出飞机救援", naci_bayes_copy( "Text", "Class", Train))
+
+Test$Result <- lapply( Test$test_text[1], predict_copy, naci_bayes_copy( "Text", "Class", Train))
