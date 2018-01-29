@@ -42,8 +42,8 @@ Recharge <- select( New_User_Reg_Dateset, Date, Recharge) %>%
 
 
 ## Visualization of Recharge
-p_recharge <- ggplot( Recharge, aes( Date, Recharge)) +
-  geom_point( color = "grey", size = 5) +
+(p_recharge <- ggplot( Recharge, aes( Date, Recharge)) +
+  geom_point( color = "maroon", size = 5, pch = 20) +
   geom_label_repel(
     aes( Date, Recharge, 
          fill = factor( class),
@@ -52,8 +52,9 @@ p_recharge <- ggplot( Recharge, aes( Date, Recharge)) +
     box.padding = unit( 0.35, "lines"), 
     point.padding = unit( 0.5, "lines"),
     segment.colour = "grey50") + 
-  theme_classic( base_size = 16)
-
+  theme_classic( base_size = 16) +
+  theme_bw()
+)
 
 ## New_User_Reg_Rate
 train <- filter( New_User_Reg, Date < end_date)
@@ -74,10 +75,11 @@ if( distribution_Reg_Rate <= 0.5){
   print( paste0( end_date, " 的新增注册率正常."))
 }
 
-p_rate <- ggplot( train, aes( x = New_User_Reg_Rate)) +
+(p_rate <- ggplot( train, aes( x = New_User_Reg_Rate)) +
   geom_density( fill = 'steelblue', alpha = 0.3) + 
   scale_x_continuous( labels = scales::percent) +
   geom_vline( 
     aes( xintercept = test),
-    colour = 'red', linetype = 'dashed', lwd = 1) +
+    colour = 'maroon', linetype = 'longdash', lwd = 1) +
   theme_bw()
+)
