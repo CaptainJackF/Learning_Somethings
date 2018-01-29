@@ -44,6 +44,7 @@ Recharge <- select( New_User_Reg_Dateset, Date, Recharge) %>%
 ## Visualization of Recharge
 (p_recharge <- ggplot( Recharge, aes( Date, Recharge)) +
   geom_point( color = "maroon", size = 5, pch = 20) +
+  geom_smooth( method = 'loess') +
   geom_label_repel(
     aes( Date, Recharge, 
          fill = factor( class),
@@ -52,6 +53,8 @@ Recharge <- select( New_User_Reg_Dateset, Date, Recharge) %>%
     box.padding = unit( 0.35, "lines"), 
     point.padding = unit( 0.5, "lines"),
     segment.colour = "grey50") + 
+  labs( title = paste0( start_date ," 到 ", end_date, " 充值金额"),
+        x = "日期", y = "充值金额(万元)") +
   theme_classic( base_size = 16) +
   theme_bw()
 )
