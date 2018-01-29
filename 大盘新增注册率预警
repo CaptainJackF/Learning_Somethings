@@ -6,6 +6,7 @@ library( dplyr) ## data manipulation
 library( RODBC) ## Database
 library( tidyr) ## reshape
 library( ggplot2)
+library( ggrepel)
 library( reshape)
 
 mysqlbase <- odbcConnect( "", uid = "", pwd = "")
@@ -55,6 +56,7 @@ Recharge <- select( New_User_Reg_Dateset, Date, Recharge) %>%
     segment.colour = "grey50") + 
   labs( title = paste0( start_date ," 到 ", end_date, " 充值金额"),
         x = "日期", y = "充值金额(万元)") +
+  scale_x_date( name = "日期", labels = date_format( "%Y-%m")) +
   theme_classic( base_size = 16) +
   theme_bw()
 )
