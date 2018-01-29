@@ -27,7 +27,7 @@ New_User_Reg_Dateset <- sqlQuery( mysqlbase,
                                   paste0( 
                                     "",  
                                     " FROM  ",
-                                    " WHERE ,
+                                    " WHERE ",
                                     " AND ;"
                                   ), 
                                   stringsAsFactors = FALSE) %>%
