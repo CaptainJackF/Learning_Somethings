@@ -56,7 +56,8 @@ Recharge <- select( New_User_Reg_Dateset, Date, Recharge) %>%
     segment.colour = "grey50") + 
   labs( title = paste0( start_date ," 到 ", end_date, " 充值金额"),
         x = "日期", y = "充值金额(万元)") +
-  scale_x_date( name = "日期", labels = date_format( "%Y-%m")) +
+  scale_x_date( name = "日期", labels = date_format( "%Y/%m/%d"),
+                  breaks = seq( as.Date( "2018-01-14"), as.Date( "2018-01-28"), by="2 days")) +
   theme_classic( base_size = 16) +
   theme_bw()
 )
