@@ -8,27 +8,60 @@ library( tidyr) ## reshape
 library( ggplot2)
 library( reshape)
 
-mysqlbase <- odbcConnect( "mysqlbase", uid = "data_center", pwd = "sjzxytjhv587")
-mysqlgame <- odbcConnect( "game_platform", uid = "data_center", pwd = "sjzxytjhv587")
-mysqlpy <- odbcConnect( "mysqlpy", uid = "data_center", pwd = "sjzxytjhv587") ##查询手盟充值数据
-mysqlpp <- odbcConnect( "mysqlpp", uid = "data_center", pwd = "sjzxytjhv587") ## 注册信息
+mysqlbase <- odbcConnect( "", uid = "", pwd = "")
+mysqlgame <- odbcConnect( "", uid = "", pwd = "")
+mysqlpy <- odbcConnect( "", uid = "", pwd = "") 
+mysqlpp <- odbcConnect( "", uid = "", pwd = "") 
 
 setwd( "F:\\Data Analysis Requirement\\2018.01\\2018-01-24【建模】大盘数据预警")
 
+test_rate <- 0.6697961  ## 2018/01/23 异常新增注册率
+# load( file = "大盘数据20171001-20180123.Rdata")
 
-#save( all_daily, file = "大盘数据20171001-20180123.Rdata")
-load( file = "大盘数据20171001-20180123.Rdata")
+## Globa Var
+# Time Range
+start_date <- Sys.Date() - 15
+end_date <- Sys.Date() - 1
 
-all_daily_1 <- mutate( all_daily,
-                       rate_new_user = NEW_USER_NUM/ACTIVE_NUM,
-                       Date = as.Date( as.character( TDAY), "%Y%m%d")) %>%
-  select( Date, rate_new_user)
+New_User_Reg_Dateset <- sqlQuery( mysqlbase, 
+                                  paste0( 
+                                    "",  
+                                    " FROM  ",
+                                    " WHERE ,
+                                    " AND ;"
+                                  ), 
+                                  stringsAsFactors = FALSE) %>%
+  mutate( New_User_Reg_Rate = round( New_User_Num/Active_Num, 5),
+          Date = as.Date( as.character( TDAY), "%Y%m%d"))
 
-train <- filter( all_daily_1, Date >= '2017-12-25', Date <= '2018-01-22')
-ggplot( train, aes( x = rate_new_user)) +
+
+New_User_Reg <- select( New_User_Reg_Dateset, Date, New_User_Reg_Rate)
+
+Recharge <- select( New_User_Reg_Dateset, Date, Recharge) %>%
+  mutate( class = ifelse( Recharge > 1500000, "Wow", "Just so so.."))
+
+
+## Visualization of Recharge
+p_recharge <- ggplot( Recharge, aes( Date, Recharge)) +
+  geom_point( color = "grey", size = 5) +
+  geom_label_repel(
+    aes( Date, Recharge, 
+         fill = factor( class),
+         label = as.character( Date)), 
+    fontface = "bold", color = "white",
+    box.padding = unit( 0.35, "lines"), 
+    point.padding = unit( 0.5, "lines"),
+    segment.colour = "grey50") + 
+  theme_classic( base_size = 16)
+
+
+## New_User_Reg_Rate
+train <- filter( New_User_Reg, Date < end_date)
+test <-  filter( New_User_Reg, Date >= end_date)
+
+p_rate <- ggplot( train, aes( x = New_User_Reg_Rate)) +
   geom_density( fill = 'steelblue', alpha = 0.3) + 
   scale_x_continuous( labels = scales::percent) 
-
 sd( train$rate_new_user)
 train$max_range <- train$rate_new_user + 2*sd( train$rate_new_user)
 train$min_range <- train$rate_new_user - 2*sd( train$rate_new_user)
