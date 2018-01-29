@@ -57,13 +57,27 @@ p_recharge <- ggplot( Recharge, aes( Date, Recharge)) +
 
 ## New_User_Reg_Rate
 train <- filter( New_User_Reg, Date < end_date)
-test <-  filter( New_User_Reg, Date >= end_date)
+test <-  filter( New_User_Reg, Date >= end_date)$New_User_Reg_Rate
+test <- 0.6697961
+
+
+sd_Reg_Rate <- sd( train$New_User_Reg_Rate)
+mean_Reg_Rate <- mean( train$New_User_Reg_Rate)
+
+distribution_Reg_Rate <- ( 1/sqrt( 2*pi*( sd_Reg_Rate^2))) * ( exp( ( -( test - mean_Reg_Rate)^2 ) / ( 2*( sd_Reg_Rate^2))) )
+
+if( distribution_Reg_Rate <= 0.5){
+  print( paste0( end_date, " 的新增注册率异常, 请及时排查异常原因."))
+} else if( distribution_Reg_Rate <= 1.2){
+  print( paste0( end_date, " 的新增注册率疑似异常, 请查看下列分布图片, 人为判断是否异常."))
+} else {
+  print( paste0( end_date, " 的新增注册率正常."))
+}
 
 p_rate <- ggplot( train, aes( x = New_User_Reg_Rate)) +
   geom_density( fill = 'steelblue', alpha = 0.3) + 
-  scale_x_continuous( labels = scales::percent) 
-sd( train$rate_new_user)
-train$max_range <- train$rate_new_user + 2*sd( train$rate_new_user)
-train$min_range <- train$rate_new_user - 2*sd( train$rate_new_user)
-
-all_daily_1$rate_new_user[115] <= min( train$min_range)
+  scale_x_continuous( labels = scales::percent) +
+  geom_vline( 
+    aes( xintercept = test),
+    colour = 'red', linetype = 'dashed', lwd = 1) +
+  theme_bw()
