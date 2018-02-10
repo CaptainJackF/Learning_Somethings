@@ -1,0 +1,60 @@
+## Gradient descent algorithm
+
+library( data.table) ## 
+library( ggplot2)    ## Visualization
+library( dplyr)      ## Data Proceess
+
+setwd( "D:\\R_Working_Directory\\Data\\Gradient descent")
+
+age <- fread( "ex2x.dat") ## 年龄
+height <- fread( "ex2y.dat") ## 身高
+
+## ----Visualization ----
+child_data <- data.frame( age, height) %>%
+  rename( age = V1, height = V1.1)
+ggplot( child_data, aes( age, height)) +
+  geom_point()
+
+
+## ---- Example1: Age vs Height ----
+Cost_Data <- data.frame()
+
+a <- 0.8
+b <- 0.08
+for(i in 1:1000){
+  ## y = a + bx
+  alpha <- 0.001  ## 学习率
+  J <- sum( ( 1/2)*( ( a*age + b) - height)^2 )
+  ssea <- sum( ( a*age + b) - height)
+  sseb <- sum( ( ( a*age + b) - height)*age )
+  
+  temp <- data.frame( a = a, b = b, Cost = J,
+                      SSEa = ssea, SSEb = sseb)
+  Cost_Data <- rbind( Cost_Data, temp)
+  a <- a - alpha*ssea
+  b <- b - alpha*sseb
+
+}
+
+## ---- Example2: House Price ----
+Area <- c( 0,0.22,0.24,0.33,0.37,0.44,0.44,0.57,0.93,1)
+Price <- c( 0,0.22,0.59,0.2,0.55,0.39,0.54,0.53,1,0.61)
+Cost_Data <- data.frame()
+
+a <- 0.45
+b <- 0.75
+for(i in 1:1000){
+  ## y = a + bx
+  alpha <- 0.005  ## 学习率
+  J <- sum( ( 1/2)*( ( a*Area + b) - Price)^2 )
+  ssea <- sum( ( ( a*Area + b) - Price)*Area)
+  sseb <- sum( ( a*Area + b) - Price)
+  
+  temp <- data.frame( a = a, b = b, Cost = J,
+                      SSEa = ssea, SSEb = sseb)
+  Cost_Data <- rbind( Cost_Data, temp)
+  a <- a - alpha*ssea
+  b <- b - alpha*sseb
+  
+}
+
