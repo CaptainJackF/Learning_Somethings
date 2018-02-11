@@ -24,9 +24,9 @@ b <- 0.08
 for(i in 1:1000){
   ## y = a + bx
   alpha <- 0.001  ## 学习率
-  J <- sum( ( 1/2)*( ( a*age + b) - height)^2 )
-  ssea <- sum( ( a*age + b) - height)
-  sseb <- sum( ( ( a*age + b) - height)*age )
+  J <- sum( ( 1/2)*( ( a + b*age) - height)^2 )
+  ssea <- sum( ( a + b*age) - height)
+  sseb <- sum( ( ( a + b*age) - height)*age )
   
   temp <- data.frame( a = a, b = b, Cost = J,
                       SSEa = ssea, SSEb = sseb)
@@ -41,14 +41,14 @@ Area <- c( 0,0.22,0.24,0.33,0.37,0.44,0.44,0.57,0.93,1)
 Price <- c( 0,0.22,0.59,0.2,0.55,0.39,0.54,0.53,1,0.61)
 Cost_Data <- data.frame()
 
-a <- 0.45
-b <- 0.75
+a <- 0.75
+b <- 0.45
 for(i in 1:1000){
   ## y = a + bx
-  alpha <- 0.005  ## 学习率
-  J <- sum( ( 1/2)*( ( a*Area + b) - Price)^2 )
-  ssea <- sum( ( ( a*Area + b) - Price)*Area)
-  sseb <- sum( ( a*Area + b) - Price)
+  alpha <- 0.01  ## 学习率
+  J <- sum( ( 1/2)*( ( a + b*Area) - Price)^2 )
+  ssea <- sum( ( a + b*Area) - Price)
+  sseb <- sum( ( ( a + b*Area) - Price)*Area)
   
   temp <- data.frame( a = a, b = b, Cost = J,
                       SSEa = ssea, SSEb = sseb)
@@ -57,4 +57,5 @@ for(i in 1:1000){
   b <- b - alpha*sseb
   
 }
+
 
