@@ -1,0 +1,38 @@
+## Normal Equation
+
+library( data.table) ## 
+library( ggplot2)    ## Visualization
+library( dplyr)      ## Data Proceess
+
+setwd( "D:\\R_Working_Directory\\Data\\Gradient descent")
+
+age <- fread( "ex2x.dat") ## 年龄
+height <- fread( "ex2y.dat") ## 身高
+
+
+## ---- Example1: House Price ----
+Area <- c( 0,0.22,0.24,0.33,0.37,0.44,0.44,0.57,0.93,1)
+Price <- c( 0,0.22,0.59,0.2,0.55,0.39,0.54,0.53,1,0.61)
+
+A <- matrix( c( rep( 1, length( Area)), Area), nrow = length( Area))
+At <- t( A)
+AAt <-At%*%A
+h <- Price
+
+parameter <- solve(AAt)%*%t(A)%*%h
+
+## Cost Function
+(J = sum( ( ( parameter[1,1] + parameter[2,1]*Area - Price)^2)/2 ) )
+
+
+## ---- Example2: Age vs Height ----
+## Y = a + bx 
+A <- matrix( c( rep( 1, nrow( age)), age$V1), nrow = nrow( age))
+At <- t( A)
+AAt <-At%*%A
+h <- c( height$V1)
+
+parameter <- solve(AAt)%*%t(A)%*%h
+
+## Cost Function
+(J = sum( ( ( parameter[1,1] + parameter[2,1]*age$V1 - height$V1)^2)/2 ) )
