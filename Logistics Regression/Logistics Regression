@@ -1,0 +1,25 @@
+## Logistics Regression
+
+library( data.table) ## 
+library( ggplot2)    ## Visualization
+library( dplyr)      ## Data Proceess
+library( Rcpp)       ## Logistics Regression
+
+setwd( "D:\\R_Working_Directory\\Data\\ML")
+watermelon <- fread( "watermelon3_0_Ch.csv") %>%  ## 年龄
+  select( 密度, 含糖率, 好瓜)
+
+
+## ---- Visualization ----
+(ggplot( watermelon, aes( `密度`, `含糖率`, color = `好瓜`)) +
+    geom_point( size = 3))
+
+
+
+
+## ---- modling ----
+watermelon$好瓜 <- factor( watermelon$好瓜)
+mylogit <- glm( 好瓜 ~ `密度` + `含糖率` , 
+                data = watermelon, family = binomial( link = "logit"))
+
+watermelon$Predict <- predict( mylogit, watermelon[ ,1:2], type = "response" )
